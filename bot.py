@@ -93,7 +93,10 @@ class AdvancedTikTokChecker:
             current_time = time.time()
             if current_time - self.last_notification_time >= self.notification_cooldown:
                 message = f"🎉 **تم العثور على يوزر جديد!**\n\n✅ `@{username}`\n💾 تم الحفظ تلقائياً"
-                await bot_instance.send_message(chat_id=chat_id, text=message)
+                
+                # ✅ ✅ ✅ التصحيح - إزالة await ✅ ✅ ✅
+                bot_instance.send_message(chat_id=chat_id, text=message)
+                
                 self.last_notification_time = current_time
                 return True
         except Exception as e:
