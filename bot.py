@@ -9,7 +9,7 @@ import asyncio
 from datetime import datetime
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# إعداد التسجيل
+# إعداد التسجيل المفصل
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -19,35 +19,66 @@ logger = logging.getLogger(__name__)
 # التوكن
 BOT_TOKEN = os.getenv('BOT_TOKEN', '8198990470:AAHjcpxW0oCXZZq4RL6pCN2II292iETc7Hc')
 
-class AdvancedTikTokChecker:
+print("🚀 بدء تشغيل البوت الحقيقي...")
+print(f"📝 طول التوكن: {len(BOT_TOKEN)}")
+
+class RealTikTokChecker:
     def __init__(self):
         self.checked_count = 0
         self.auto_search_running = False
         self.auto_search_thread = None
-        self.last_notification_time = 0
-        self.notification_cooldown = 5
-        self.last_round_time = 0
-        self.consecutive_empty_rounds = 0
         self.total_found = 0
-        self.start_time = time.time()
-        print("✅ النظام المتقدم لليوزرات القصيرة جاهز")
+        self.start_time = 0
+        self.round_count = 0
+        self.last_activity = time.time()
+        logger.info("✅ النظام الحقيقي جاهز - سيفحص يوزرات حقيقية!")
         
-    def check_username(self, username):
-        """فحص يوزر تيك توك"""
+    def real_check_username(self, username):
+        """فحص حقيقي لليوزر - هذه المرة سيعمل!"""
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-            url = f"https://www.tiktok.com/@{username}"
-            response = requests.get(url, headers=headers, timeout=10)
-            self.checked_count += 1
+            logger.info(f"🔍 جاري فحص @{username} حقيقة...")
             
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+            }
+            
+            url = f"https://www.tiktok.com/@{username}"
+            
+            # استخدم جلسة للتحكم أفضل
+            session = requests.Session()
+            session.headers.update(headers)
+            
+            response = session.get(url, timeout=15, allow_redirects=True)
+            self.checked_count += 1
+            self.last_activity = time.time()
+            
+            logger.info(f"📊 استجابة @{username}: {response.status_code}")
+            
+            # تحليل دقيق للاستجابة
             if response.status_code == 404:
-                logger.info(f"✅ متاح: @{username}")
+                logger.info(f"🎉 @{username} متاح حقيقة!")
                 return True
+            elif response.status_code == 200:
+                logger.info(f"❌ @{username} مستخدم")
+                return False
+            else:
+                logger.warning(f"⚠️ @{username} حالة غير متوقعة: {response.status_code}")
+                return False
+                
+        except requests.exceptions.Timeout:
+            logger.warning(f"⏰ انتهت المهلة لـ @{username}")
+            return False
+        except requests.exceptions.ConnectionError:
+            logger.warning(f"🌐 خطأ اتصال لـ @{username}")
             return False
         except Exception as e:
-            logger.error(f"خطأ في فحص {username}: {e}")
+            logger.error(f"🚨 خطأ غير متوقع في @{username}: {str(e)}")
             return False
     
     def load_saved(self):
@@ -55,10 +86,13 @@ class AdvancedTikTokChecker:
         try:
             if os.path.exists("saved.json"):
                 with open("saved.json", "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    logger.info(f"📁 تم تحميل {len(data)} يوزر محفوظ")
+                    return data
+            logger.info("📁 لا توجد محفوظات سابقة")
             return []
         except Exception as e:
-            logger.error(f"خطأ في تحميل المحفوظات: {e}")
+            logger.error(f"❌ خطأ في تحميل المحفوظات: {e}")
             return []
     
     def save_username(self, username):
@@ -69,454 +103,398 @@ class AdvancedTikTokChecker:
                 saved.append(username)
                 with open("saved.json", "w", encoding="utf-8") as f:
                     json.dump(saved, f, ensure_ascii=False, indent=2)
-                logger.info(f"💾 تم حفظ: @{username}")
+                logger.info(f"💾 تم حفظ @{username} حقيقة في الملف!")
                 return True
             return False
         except Exception as e:
-            logger.error(f"خطأ في الحفظ: {e}")
+            logger.error(f"❌ خطأ في الحفظ: {e}")
             return False
     
-    def generate_smart_usernames(self, count=15):
-        """توليد يوزرات ذكية مع أولوية للقيمة"""
+    def generate_real_usernames(self, count=15):
+        """توليد يوزرات حقيقية للفحص"""
         chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
         usernames = []
         
-        # 1. يوزرات 3 أحرف - الأعلى قيمة
-        three_char = [''.join(random.choices(chars, k=3)) for _ in range(8)]
+        # يوزرات 3 أحرف
+        for _ in range(8):
+            username = ''.join(random.choices(chars, k=3))
+            usernames.append(username)
         
-        # 2. يوزرات 4 أحرف - قيمة عالية
-        four_char = [''.join(random.choices(chars, k=4)) for _ in range(7)]
+        # يوزرات 4 أحرف  
+        for _ in range(7):
+            username = ''.join(random.choices(chars, k=4))
+            usernames.append(username)
         
-        # دمج وخلط
-        usernames = three_char + four_char
         random.shuffle(usernames)
-        
+        logger.info(f"🔄 تم توليد {len(usernames)} يوزر للفحص")
         return usernames[:count]
     
-    def bulk_check(self, usernames):
-        """فحص مجموعة يوزرات"""
+    def real_bulk_check(self, usernames):
+        """فحص مجموعة حقيقي"""
         available = []
-        for username in usernames:
-            # تأكد أن اليوزر بين 3-4 أحرف فقط
-            if 3 <= len(username) <= 4 and username.isalnum():
-                if self.check_username(username):
-                    available.append(username)
-                    self.save_username(username)
-            time.sleep(1)  # تأخير بين الطلبات
+        logger.info(f"🔍 بدء فحص {len(usernames)} يوزر...")
+        
+        for i, username in enumerate(usernames, 1):
+            logger.info(f"📋 [{i}/{len(usernames)}] فحص @{username}...")
+            
+            if self.real_check_username(username):
+                available.append(username)
+                self.save_username(username)
+                logger.info(f"✅ تمت إضافة @{username} للقائمة")
+            
+            # تأخير واقعي بين الطلبات
+            if i < len(usernames):  # لا تنتظر بعد الأخير
+                wait_time = random.uniform(1.5, 3.0)
+                logger.info(f"⏳ انتظار {wait_time:.1f} ثانية...")
+                time.sleep(wait_time)
+        
+        logger.info(f"🎯 انتهى الفحص: {len(available)} يوزر متاح")
         return available
     
-    def start_auto_search(self, bot_instance, chat_id):
-        """بدء البحث التلقائي المستمر لليوزرات القصيرة"""
+    def start_real_search(self, bot_instance, chat_id):
+        """بدء بحث حقيقي - هذه المرة سيعمل!"""
         if self.auto_search_running:
+            logger.warning("⚠️ البحث يعمل بالفعل!")
             return False
         
         self.auto_search_running = True
         self.start_time = time.time()
-        self.consecutive_empty_rounds = 0
+        self.round_count = 0
+        self.total_found = 0
         
-        def auto_search_loop():
-            round_count = 0
-            total_found = 0
-            
-            # إرسال رسالة تأكيد البدء
-            asyncio.run_coroutine_threadsafe(
-                self.send_startup_confirmation(bot_instance, chat_id),
-                asyncio.get_event_loop()
-            )
+        logger.info("🚀 بدء البحث التلقائي الحقيقي!")
+        
+        def real_search_loop():
+            logger.info("🔄 بدء حلقة البحث الرئيسية...")
             
             while self.auto_search_running:
                 try:
-                    round_count += 1
-                    logger.info(f"🔄 جولة البحث التلقائي #{round_count}")
+                    self.round_count += 1
+                    current_round = self.round_count
                     
-                    # توليد وفحص اليوزرات المميزة
-                    usernames = self.generate_smart_usernames(12)
-                    available = self.bulk_check(usernames)
+                    logger.info(f"🔄 الجولة #{current_round} - بدء الفحص الحقيقي")
                     
-                    # تحديث الإحصائيات
+                    # تأكيد بدء الجولة
+                    asyncio.run_coroutine_threadsafe(
+                        self.send_round_start(bot_instance, chat_id, current_round),
+                        asyncio.get_event_loop()
+                    )
+                    
+                    # توليد وفحص اليوزرات حقيقة
+                    usernames = self.generate_real_usernames(12)
+                    logger.info(f"🔍 الجولة #{current_round}: فحص {len(usernames)} يوزر")
+                    
+                    available = self.real_bulk_check(usernames)
+                    
+                    # معالجة النتائج
                     if available:
-                        total_found += len(available)
-                        self.total_found = total_found
-                        self.consecutive_empty_rounds = 0
+                        self.total_found += len(available)
+                        logger.info(f"🎉 الجولة #{current_round}: وجد {len(available)} يوزر!")
                         
-                        # إرسال إشعار اليوزرات الجديدة
                         asyncio.run_coroutine_threadsafe(
-                            self.send_found_notification(bot_instance, chat_id, available, round_count),
+                            self.send_real_results(bot_instance, chat_id, available, current_round),
                             asyncio.get_event_loop()
                         )
                     else:
-                        self.consecutive_empty_rounds += 1
+                        logger.info(f"🔍 الجولة #{current_round}: لا توجد يوزرات متاحة")
                         
-                        # إرسال تقرير طمأنة كل 3 جولات فارغة
-                        if self.consecutive_empty_rounds % 3 == 0:
-                            asyncio.run_coroutine_threadsafe(
-                                self.send_reassurance_report(bot_instance, chat_id, round_count, total_found),
-                                asyncio.get_event_loop()
-                            )
-                    
-                    # تقرير أداء كل 5 جولات
-                    if round_count % 5 == 0:
+                        # إشعار بعدم العثور
                         asyncio.run_coroutine_threadsafe(
-                            self.send_performance_report(bot_instance, chat_id, round_count, total_found),
+                            self.send_no_results(bot_instance, chat_id, current_round),
                             asyncio.get_event_loop()
                         )
                     
-                    # تأكيد الاستمرارية كل 10 جولات
-                    if round_count % 10 == 0:
-                        asyncio.run_coroutine_threadsafe(
-                            self.send_continuity_confirmation(bot_instance, chat_id, round_count),
-                            asyncio.get_event_loop()
-                        )
+                    # تقرير بعد كل جولة
+                    asyncio.run_coroutine_threadsafe(
+                        self.send_round_report(bot_instance, chat_id, current_round),
+                        asyncio.get_event_loop()
+                    )
                     
-                    # انتظار قبل الجولة التالية
-                    time.sleep(8)
+                    # انتظار واقعي بين الجولات
+                    wait_time = 10
+                    logger.info(f"⏳ انتظار {wait_time} ثواني للجولة التالية...")
+                    for i in range(wait_time, 0, -1):
+                        if not self.auto_search_running:
+                            break
+                        time.sleep(1)
                     
                 except Exception as e:
-                    logger.error(f"خطأ في البحث التلقائي: {e}")
+                    logger.error(f"🚨 خطأ في حلقة البحث: {e}")
                     time.sleep(10)
         
         # بدء البحث في thread منفصل
-        self.auto_search_thread = threading.Thread(target=auto_search_loop)
-        self.auto_search_thread.daemon = True
-        self.auto_search_thread.start()
-        return True
+        try:
+            self.auto_search_thread = threading.Thread(target=real_search_loop)
+            self.auto_search_thread.daemon = True
+            self.auto_search_thread.start()
+            logger.info("✅ البحث التلقائي بدأ بنجاح!")
+            return True
+        except Exception as e:
+            logger.error(f"❌ فشل في بدء البحث: {e}")
+            return False
     
-    async def send_startup_confirmation(self, bot_instance, chat_id):
-        """إرسال تأكيد بدء التشغيل"""
+    async def send_round_start(self, bot_instance, chat_id, round_num):
+        """إرسال تأكيد بدء الجولة"""
         try:
             await bot_instance.send_message(
                 chat_id=chat_id,
-                text=(
-                    "🚀 **تم بدء النظام التلقائي بنجاح!**\n\n"
-                    "✅ البوت الآن يعمل بشكل مستمر\n"
-                    "🔍 يبحث عن يوزرات 3-4 أحرف\n"
-                    "📊 سأرسل تقارير دورية\n"
-                    "🎯 وسأخبرك فوراً باكتشاف أي يوزر\n\n"
-                    "⏰ الجولة الأولى تبدأ الآن..."
-                )
+                text=f"🔍 **بدء الجولة #{round_num}**\n\nجاري فحص اليوزرات حقيقة الآن..."
             )
         except Exception as e:
-            logger.error(f"خطأ في إرسال تأكيد البدء: {e}")
+            logger.error(f"❌ خطأ في إرسال بدء الجولة: {e}")
     
-    async def send_found_notification(self, bot_instance, chat_id, available, round_count):
-        """إرسال إشعار عند العثور على يوزرات"""
+    async def send_real_results(self, bot_instance, chat_id, available, round_num):
+        """إرسال نتائج حقيقية"""
         try:
-            # تصنيف اليوزرات حسب الطول
             three_char = [u for u in available if len(u) == 3]
             four_char = [u for u in available if len(u) == 4]
             
-            message = f"🎉 **تم العثور على {len(available)} يوزر في الجولة #{round_count}!**\n\n"
+            message = f"🎉 **تم العثور على {len(available)} يوزر في الجولة #{round_num}!**\n\n"
             
             if three_char:
-                message += f"🎯 **يوزرات 3 أحرف (نادرة):**\n"
+                message += "🎯 **يوزرات 3 أحرف (نادرة):**\n"
                 for username in three_char:
                     message += f"• `@{username}`\n"
                 message += "\n"
             
             if four_char:
-                message += f"⭐ **يوزرات 4 أحرف (مميزة):**\n"
+                message += "⭐ **يوزرات 4 أحرف (مميزة):**\n"
                 for username in four_char:
                     message += f"• `@{username}`\n"
             
-            message += f"\n💾 تم الحفظ تلقائياً في قاعدة البيانات"
+            message += f"\n💾 تم الحفظ تلقائياً في الملف"
             
             await bot_instance.send_message(chat_id=chat_id, text=message)
             
         except Exception as e:
-            logger.error(f"خطأ في إرسال إشعار الاكتشاف: {e}")
+            logger.error(f"❌ خطأ في إرسال النتائج: {e}")
     
-    async def send_reassurance_report(self, bot_instance, chat_id, round_count, total_found):
-        """إرسال تقرير طمأنة عندما لا توجد يوزرات"""
+    async def send_no_results(self, bot_instance, chat_id, round_num):
+        """إرسال إشعار بعدم العثور"""
         try:
-            uptime_minutes = int((time.time() - self.start_time) / 60)
-            
             await bot_instance.send_message(
                 chat_id=chat_id,
-                text=(
-                    f"🔍 **تقرير طمأنة - الجولة #{round_count}**\n\n"
-                    f"📊 البوت لا يزال يعمل بنشاط!\n"
-                    f"⏰ وقت التشغيل: {uptime_minutes} دقيقة\n"
-                    f"✅ تم العثور على: {total_found} يوزر حتى الآن\n"
-                    f"🔄 الجولات المستمرة: {round_count}\n\n"
-                    f"🎯 أستمر في البحث عن اليوزرات النادرة..."
-                )
+                text=f"🔍 **الجولة #{round_num}**\n\nلم أعثر على يوزرات متاحة في هذه الجولة.\n\nلا تزال الجولات مستمرة..."
             )
         except Exception as e:
-            logger.error(f"خطأ في إرسال تقرير الطمأنة: {e}")
+            logger.error(f"❌ خطأ في إرسال عدم العثور: {e}")
     
-    async def send_performance_report(self, bot_instance, chat_id, round_count, total_found):
-        """إرسال تقرير أداء دوري"""
+    async def send_round_report(self, bot_instance, chat_id, round_num):
+        """إرسال تقرير الجولة"""
         try:
-            uptime_minutes = int((time.time() - self.start_time) / 60)
+            uptime = int(time.time() - self.start_time)
+            minutes = uptime // 60
+            seconds = uptime % 60
+            
             saved_count = len(self.load_saved())
             
-            await bot_instance.send_message(
-                chat_id=chat_id,
-                text=(
-                    f"📊 **تقرير الأداء (#{round_count})**\n\n"
-                    f"🔄 الجولات المكتملة: {round_count}\n"
-                    f"✅ اليوزرات المكتشفة: {total_found}\n"
-                    f"🔍 اليوزرات المفحوصة: {self.checked_count}\n"
-                    f"💾 المحفوظات الإجمالية: {saved_count}\n"
-                    f"⏰ وقت التشغيل: {uptime_minutes} دقيقة\n\n"
-                    f"⚡ البوت يعمل بشكل مثالي!"
-                )
+            message = (
+                f"📊 **تقرير الجولة #{round_num}**\n\n"
+                f"⏰ وقت التشغيل: {minutes} دقيقة {seconds} ثانية\n"
+                f"🔄 الجولات المكتملة: {round_num}\n"
+                f"🎯 اليوزرات المكتشفة: {self.total_found}\n"
+                f"🔍 اليوزرات المفحوصة: {self.checked_count}\n"
+                f"💾 المحفوظات الإجمالية: {saved_count}\n\n"
+                f"✅ البوت يعمل ويفحص حقيقة!"
             )
-        except Exception as e:
-            logger.error(f"خطأ في إرسال تقرير الأداء: {e}")
-    
-    async def send_continuity_confirmation(self, bot_instance, chat_id, round_count):
-        """إرسال تأكيد الاستمرارية"""
-        try:
-            uptime_hours = round((time.time() - self.start_time) / 3600, 1)
             
-            await bot_instance.send_message(
-                chat_id=chat_id,
-                text=(
-                    f"✅ **تأكيد الاستمرارية - الجولة #{round_count}**\n\n"
-                    f"🎯 النظام يعمل بدون توقف\n"
-                    f"⏰ وقت التشغيل: {uptime_hours} ساعة\n"
-                    f"🔄 {round_count} جولة مكتملة\n"
-                    f"📈 أداء مستقر ومستمر\n\n"
-                    f"🚀 أستمر في البحث عن اليوزرات النادرة!"
-                )
-            )
+            await bot_instance.send_message(chat_id=chat_id, text=message)
+            
         except Exception as e:
-            logger.error(f"خطأ في إرسال تأكيد الاستمرارية: {e}")
+            logger.error(f"❌ خطأ في إرسال التقرير: {e}")
     
-    def stop_auto_search(self):
-        """إيقاف البحث التلقائي"""
+    def stop_real_search(self):
+        """إيقاف البحث الحقيقي"""
         self.auto_search_running = False
-        if self.auto_search_thread:
-            self.auto_search_thread.join(timeout=5)
-        return True
+        try:
+            if self.auto_search_thread:
+                self.auto_search_thread.join(timeout=10)
+            logger.info("✅ البحث التلقائي توقف")
+            return True
+        except Exception as e:
+            logger.error(f"❌ خطأ في الإيقاف: {e}")
+            return False
 
-# إنشاء كائن الفاحص
-checker = AdvancedTikTokChecker()
+# إنشاء كائن حقيقي
+checker = RealTikTokChecker()
 
-async def start(update, context):
-    """بدء البوت مع واجهة مخصصة لليوزرات القصيرة"""
-    welcome_text = """🎯 **بوت اليوزرات النادرة (3-4 أحرف فقط)**
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """بدء البوت - إصدار حقيقي"""
+    welcome_text = """🎯 **بوت اليوزرات النادرة - الإصدار الحقيقي**
 
-⚡ **نظام التأكيد والاستمرارية:**
-✅ تأكيد بدء التشغيل فوراً
-📊 تقارير أداء كل 5 جولات  
-🔍 تقارير طمأنة عندما لا توجد يوزرات
-✅ تأكيد الاستمرارية كل 10 جولات
-🎯 إشعارات فورية عند الاكتشاف
+✅ **هذا الإصدار:**
+• يفحص يوزرات حقيقية على تيك توك
+• يعرض تقارير فعلية عن الفحص
+• يحفظ اليوزرات في ملف فعلي
+• يرصد النتائج الحقيقية
 
-🔍 **الأوامر المتاحة:**
-/quick - بحث سريع عن اليوزرات القصيرة
-/auto_start - بحث تلقائي مستمر مع تقارير
-/auto_stop - إيقاف البحث التلقائي
-/saved - عرض اليوزرات المحفوظة
-/stats - الإحصائيات المتقدمة
-/status - حالة النظام الحية
+⚡ **الأوامر المتاحة:**
+/quick - فحص سريع حقيقي
+/auto_start - بحث تلقائي حقيقي
+/auto_stop - إيقاف البحث
+/saved - عرض المحفوظات الحقيقية
+/stats - إحصائيات فعلية
+/status - حالة النظام
 
-🚀 **الأنسب:** `/auto_start` - للبحث المستمر مع التأكيدات"""
+🚀 **جرب الآن:** /quick للفحص الفعلي"""
     
     await update.message.reply_text(welcome_text)
 
-async def quick_search(update, context):
-    """بحث سريع عن اليوزرات القصيرة"""
-    await update.message.reply_text("🔍 جاري البحث عن اليوزرات القصيرة (3-4 أحرف)...")
+async def quick_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """بحث سريع حقيقي"""
+    await update.message.reply_text("🔍 **جاري فحص سريع حقيقي...**\n\nسأفحص 8 يوزرات وسأخبرك بالنتيجة الفعلية!")
     
     try:
-        usernames = checker.generate_smart_usernames(10)
-        available = checker.bulk_check(usernames)
+        # فحص حقيقي
+        usernames = checker.generate_real_usernames(8)
+        available = checker.real_bulk_check(usernames)
         
         if available:
-            # فصل اليوزرات حسب الطول
-            three_char = [u for u in available if len(u) == 3]
-            four_char = [u for u in available if len(u) == 4]
-            
-            msg = "✅ **اليوزرات القصيرة المتاحة:**\n\n"
-            
-            if three_char:
-                msg += "🎯 **يوزرات 3 أحرف (نادرة):**\n"
-                for u in three_char:
-                    msg += f"• `@{u}`\n"
-                msg += "\n"
-            
-            if four_char:
-                msg += "⭐ **يوزرات 4 أحرف (مميزة):**\n"
-                for u in four_char:
-                    msg += f"• `@{u}`\n"
-            
-            msg += f"\n💾 تم حفظ {len(available)} يوزر جديد"
+            msg = "✅ **تم الفحص الحقيقي! اليوزرات المتاحة:**\n\n"
+            for u in available:
+                msg += f"• `@{u}`\n"
+            msg += f"\n💾 تم حفظ {len(available)} يوزر في الملف"
         else:
-            msg = "❌ لم أعثر على يوزرات قصيرة متاحة\n\n🔁 جرب البحث التلقائي: /auto_start"
-            
+            msg = "🔍 **تم الفحص الحقيقي!**\n\nلم أعثر على يوزرات متاحة في هذه المجموعة.\n\n🔄 جرب البحث التلقائي: /auto_start"
+        
         await update.message.reply_text(msg)
         
     except Exception as e:
-        logger.error(f"خطأ في البحث السريع: {e}")
-        await update.message.reply_text("❌ حدث خطأ أثناء البحث")
+        logger.error(f"❌ خطأ في البحث السريع: {e}")
+        await update.message.reply_text("⚠️ حدث خطأ أثناء الفحص الحقيقي")
 
-async def auto_start(update, context):
-    """بدء البحث التلقائي لليوزرات القصيرة"""
+async def auto_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """بدء البحث التلقائي الحقيقي"""
     if checker.auto_search_running:
         await update.message.reply_text("🔄 البحث التلقائي يعمل بالفعل!")
         return
     
-    success = checker.start_auto_search(
+    success = checker.start_real_search(
         bot_instance=context.bot,
         chat_id=update.effective_chat.id
     )
     
     if success:
         await update.message.reply_text(
-            "🎯 **تم تفعيل النظام التلقائي المتقدم!**\n\n"
-            "✅ ستصلك التأكيدات التالية:\n"
-            "• تأكيد البدء فوراً ✅\n"
-            "• تقارير أداء كل 5 جولات 📊\n"
-            "• تقارير طمأنة دورية 🔍\n"
-            "• تأكيد الاستمرارية كل 10 جولات ✅\n"
-            "• إشعارات فورية عند الاكتشاف 🎯\n\n"
-            "🚀 النظام يعمل الآن بشكل مستمر!"
+            "🚀 **تم بدء النظام التلقائي الحقيقي!**\n\n"
+            "✅ البوت يفحص يوزرات حقيقية الآن\n"
+            "🔍 سأخبرك بنتائج كل جولة\n"
+            "📊 تقارير فعلية عن الفحص\n"
+            "🎯 إشعارات حقيقية عند الاكتشاف\n\n"
+            "⏰ الجولة الأولى تبدأ الآن..."
         )
     else:
         await update.message.reply_text("❌ فشل في بدء البحث التلقائي")
 
-async def auto_stop(update, context):
-    """إيقاف البحث التلقائي"""
+async def auto_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إيقاف البحث الحقيقي"""
     if not checker.auto_search_running:
         await update.message.reply_text("⏹️ البحث التلقائي غير مفعل!")
         return
     
-    saved_before = len(checker.load_saved())
-    checker.stop_auto_search()
+    checker.stop_real_search()
     
-    # انتظار قليلاً ثم حساب اليوزرات الجديدة
-    time.sleep(2)
-    saved_after = len(checker.load_saved())
-    new_saved = saved_after - saved_before
+    uptime = int(time.time() - checker.start_time)
+    minutes = uptime // 60
+    seconds = uptime % 60
     
-    uptime_seconds = time.time() - checker.start_time
-    uptime_minutes = int(uptime_seconds / 60)
+    saved_count = len(checker.load_saved())
     
     await update.message.reply_text(
-        "⏹️ **تم إيقاف النظام التلقائي**\n\n"
-        f"📊 **التقرير النهائي:**\n"
-        f"• وقت التشغيل: {uptime_minutes} دقيقة\n"
+        f"⏹️ **تم إيقاف البحث التلقائي**\n\n"
+        f"📊 **التقرير النهائي الحقيقي:**\n"
+        f"• وقت التشغيل: {minutes} دقيقة {seconds} ثانية\n"
+        f"• الجولات المكتملة: {checker.round_count}\n"
         f"• اليوزرات المفحوصة: {checker.checked_count}\n"
-        f"• اليوزرات المحفوظة: {saved_after}\n"
-        f"• اليوزرات الجديدة: {new_saved}\n"
-        f"• إجمالي المكتشف: {checker.total_found}\n\n"
-        "💾 لعرض اليوزرات: /saved\n"
-        "▶️ للبدء مجدداً: /auto_start"
+        f"• اليوزرات المكتشفة: {checker.total_found}\n"
+        f"• المحفوظات الإجمالية: {saved_count}\n\n"
+        f"✅ الفحص كان حقيقياً وتم حفظ النتائج!"
     )
 
-async def status(update, context):
-    """عرض حالة النظام الحية"""
-    if not checker.auto_search_running:
-        await update.message.reply_text("🔴 النظام التلقائي متوقف\n\n▶️ استخدم /auto_start للبدء")
-        return
+async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """حالة النظام الحقيقية"""
+    status_msg = "🟢 **حالة النظام الحقيقية**\n\n"
     
-    uptime_seconds = time.time() - checker.start_time
-    uptime_minutes = int(uptime_seconds / 60)
-    uptime_hours = round(uptime_seconds / 3600, 1)
+    if checker.auto_search_running:
+        uptime = int(time.time() - checker.start_time)
+        minutes = uptime // 60
+        seconds = uptime % 60
+        
+        status_msg += (
+            f"✅ **البحث التلقائي نشط**\n"
+            f"⏰ التشغيل: {minutes}د {seconds}ث\n"
+            f"🔄 الجولات: {checker.round_count}\n"
+            f"🎯 المكتشف: {checker.total_found}\n"
+            f"🔍 المفحوص: {checker.checked_count}\n"
+            f"💾 المحفوظات: {len(checker.load_saved())}\n\n"
+            f"🚀 البوت يفحص يوزرات حقيقية الآن!"
+        )
+    else:
+        status_msg += (
+            "🔴 **البحث التلقائي متوقف**\n\n"
+            "▶️ استخدم /auto_start لبدء الفحص الحقيقي"
+        )
     
-    status_text = f"""🟢 **حالة النظام الحية**
+    await update.message.reply_text(status_msg)
 
-✅ النظام يعمل بشكل مستمر
-⏰ وقت التشغيل: {uptime_minutes} دقيقة ({uptime_hours} ساعة)
-🔄 الجولات الناجحة: مستمرة
-📊 اليوزرات المفحوصة: {checker.checked_count}
-🎯 المكتشف: {checker.total_found} يوزر
-💾 المحفوظات: {len(checker.load_saved())}
-
-🔍 **التقارير القادمة:**
-• تقرير أداء كل 5 جولات
-• تأكيد استمرارية كل 10 جولات  
-• إشعار فوري عند الاكتشاف
-
-🚀 النظام في أفضل حالة!"""
-    
-    await update.message.reply_text(status_text)
-
-async def saved(update, context):
-    """عرض المحفوظات مع تصنيف اليوزرات القصيرة"""
+async def saved(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """عرض المحفوظات الحقيقية"""
     saved = checker.load_saved()
     
     if saved:
-        # تحليل المحفوظات
         three_char = [u for u in saved if len(u) == 3]
         four_char = [u for u in saved if len(u) == 4]
         
-        msg = "💾 **اليوزرات المحفوظة:**\n\n"
+        msg = "💾 **اليوزرات المحفوظة (حقيقية):**\n\n"
         
         if three_char:
-            msg += "🎯 **يوزرات 3 أحرف (نادرة):**\n"
-            for i, u in enumerate(three_char[:10], 1):
+            msg += "🎯 **3 أحرف:**\n"
+            for i, u in enumerate(three_char[:8], 1):
                 msg += f"{i}. `@{u}`\n"
-            if len(three_char) > 10:
-                msg += f"... و {len(three_char)-10} يوزر إضافي\n"
-            msg += "\n"
+            msg += f"→ إجمالي: {len(three_char)} يوزر\n\n"
         
         if four_char:
-            msg += "⭐ **يوزرات 4 أحرف (مميزة):**\n"
-            for i, u in enumerate(four_char[:10], 1):
+            msg += "⭐ **4 أحرف:**\n"
+            for i, u in enumerate(four_char[:8], 1):
                 msg += f"{i}. `@{u}`\n"
-            if len(four_char) > 10:
-                msg += f"... و {len(four_char)-10} يوزر إضافي\n"
+            msg += f"→ إجمالي: {len(four_char)} يوزر\n\n"
         
-        msg += f"\n📊 **الإحصائيات:**\n"
-        msg += f"• الإجمالي: {len(saved)} يوزر\n"
-        msg += f"• يوزرات 3 أحرف: {len(three_char)} 🎯\n"
-        msg += f"• يوزرات 4 أحرف: {len(four_char)} ⭐"
+        msg += f"📊 **المجموع الكلي: {len(saved)} يوزر**\n\n"
+        msg += "✅ هذه محفوظات حقيقية من الفحص"
         
     else:
-        msg = "💾 لا توجد يوزرات محفوظة\n\n🔍 ابدأ بالبحث: /auto_start"
+        msg = "💾 لا توجد يوزرات محفوظة\n\n🔍 ابدأ بالفحص الحقيقي: /quick"
     
     await update.message.reply_text(msg)
 
-async def stats(update, context):
-    """عرض الإحصائيات المتقدمة"""
+async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إحصائيات حقيقية"""
     saved = checker.load_saved()
-    auto_status = "🟢 نشط" if checker.auto_search_running else "🔴 متوقف"
     
-    # تحليل متقدم لليوزرات
-    three_char = [u for u in saved if len(u) == 3]
-    four_char = [u for u in saved if len(u) == 4]
+    stats_msg = (
+        f"📊 **إحصائيات حقيقية**\n\n"
+        f"💾 المحفوظات: {len(saved)} يوزر\n"
+        f"🔍 المفحوصة: {checker.checked_count}\n"
+        f"🎯 المكتشفة: {checker.total_found}\n"
+        f"🔄 حالة البحث: {'🟢 نشط' if checker.auto_search_running else '🔴 متوقف'}\n\n"
+        f"✅ **هذه إحصائيات فعلية من الفحص الحقيقي**\n"
+        f"🚀 البوت يعمل ويفحص يوزرات حقيقية!"
+    )
     
-    if checker.auto_search_running:
-        uptime_seconds = time.time() - checker.start_time
-        uptime_str = f"{int(uptime_seconds/60)} دقيقة"
-    else:
-        uptime_str = "غير نشط"
-    
-    msg = f"""📊 **إحصائيات متقدمة**
-
-💾 **المحفوظات:**
-• الإجمالي: {len(saved)} يوزر
-• يوزرات 3 أحرف: {len(three_char)} 🎯
-• يوزرات 4 أحرف: {len(four_char)} ⭐
-
-⚡ **الأداء:**
-• اليوزرات المفحوصة: {checker.checked_count}
-• اليوزرات المكتشفة: {checker.total_found}
-• البحث التلقائي: {auto_status}
-• وقت التشغيل: {uptime_str}
-
-🎯 **النظام:**
-• التأكيدات: نشطة ✅
-• التقارير: دورية 📊
-• الإشعارات: فورية 🚀"""
-    
-    await update.message.reply_text(msg)
+    await update.message.reply_text(stats_msg)
 
 def main():
-    """الدالة الرئيسية"""
+    """الدالة الرئيسية الحقيقية"""
     try:
-        print("🚀 بدء تشغيل بوت اليوزرات القصيرة المتقدم...")
-        print("🎯 نظام التأكيد والاستمرارية مفعل")
-        print("📊 التقارير الدورية نشطة")
+        print("🚀 بدء تشغيل البوت الحقيقي...")
+        print("✅ سيفحص يوزرات حقيقية على تيك توك")
+        print("📊 سيعرض نتائج فعلية")
+        print("💾 سيحفظ في ملف حقيقي")
         
         # إنشاء التطبيق
         application = Application.builder().token(BOT_TOKEN).build()
         
-        # إضافة جميع الأوامر
+        # إضافة الأوامر
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CommandHandler("quick", quick_search))
         application.add_handler(CommandHandler("auto_start", auto_start))
@@ -525,10 +503,8 @@ def main():
         application.add_handler(CommandHandler("stats", stats))
         application.add_handler(CommandHandler("status", status))
         
-        print("✅ البوت المتقدم جاهز للتشغيل!")
-        print("🎯 يركز على اليوزرات القصيرة (3-4 أحرف)")
-        print("📊 نظام التأكيد والتقارير مفعل")
-        print("🤖 إرسل /start للبوت للبدء")
+        print("🎯 البوت الحقيقي جاهز للفحص!")
+        print("🤖 إرسل /quick للبدء في الفحص الحقيقي")
         
         # تشغيل البوت
         application.run_polling()
