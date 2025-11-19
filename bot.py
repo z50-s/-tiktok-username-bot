@@ -5,6 +5,7 @@ import json
 import logging
 import time
 import threading
+import asyncio
 from datetime import datetime
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -80,22 +81,25 @@ class AdvancedTikTokChecker:
                 logger.info(f"💾 تم حفظ اليوزر: @{username}")
                 
                 if chat_id and bot_instance:
-                    self.send_username_notification(chat_id, username, bot_instance)
+                    # ✅ إصلاح: استخدام asyncio لاستدعاء الدالة غير المتزامنة
+                    asyncio.create_task(
+                        self.send_username_notification(chat_id, username, bot_instance)
+                    )
                 return True
             return False
         except Exception as e:
             logger.error(f"خطأ في الحفظ: {e}")
             return False
     
-    def send_username_notification(self, chat_id, username, bot_instance):
-        """إرسال إشعار باليوزر الجديد"""
+    async def send_username_notification(self, chat_id, username, bot_instance):
+        """إرسال إشعار باليوزر الجديد - يجب أن تكون async"""
         try:
             current_time = time.time()
             if current_time - self.last_notification_time >= self.notification_cooldown:
                 message = f"🎉 **تم العثور على يوزر جديد!**\n\n✅ `@{username}`\n💾 تم الحفظ تلقائياً"
                 
-                # ✅ ✅ ✅ التصحيح - إزالة await ✅ ✅ ✅
-                bot_instance.send_message(chat_id=chat_id, text=message)
+                # ✅ ✅ ✅ التصحيح الأساسي: إضافة await هنا
+                await bot_instance.send_message(chat_id=chat_id, text=message)
                 
                 self.last_notification_time = current_time
                 return True
@@ -154,16 +158,9 @@ class AdvancedTikTokChecker:
             total_found = 0
             
             try:
-                bot_instance.send_message(
-                    chat_id=chat_id,
-                    text=(
-                        f"🔄 **بدأ البحث التلقائي!**\n\n"
-                        f"📊 الإعدادات:\n"
-                        f"• النوع: {search_type}\n"
-                        f"• اليوزرات لكل جولة: {batch_size}\n"
-                        f"• التأخير بين الجولات: {delay} ثواني\n\n"
-                        f"🎯 سأخبرك فوراً عند العثور على أي يوزر جديد!"
-                    )
+                # ✅ إصلاح: استخدام asyncio لاستدعاء الدالة غير المتزامنة
+                asyncio.create_task(
+                    self.send_auto_start_message(chat_id, bot_instance, search_type, batch_size, delay)
                 )
             except Exception as e:
                 logger.error(f"خطأ في إرسال رسالة البدء: {e}")
@@ -186,21 +183,16 @@ class AdvancedTikTokChecker:
                             message += f"• `@{username}`\n"
                         message += f"\n💾 تم حفظ {len(saved)} يوزر جديد"
                         try:
-                            bot_instance.send_message(chat_id=chat_id, text=message)
+                            asyncio.create_task(
+                                bot_instance.send_message(chat_id=chat_id, text=message)
+                            )
                         except Exception as e:
                             logger.error(f"خطأ في إرسال نتائج الجولة: {e}")
                     
                     if round_count % 10 == 0:
                         try:
-                            bot_instance.send_message(
-                                chat_id=chat_id,
-                                text=(
-                                    f"📊 **تقرير تقدم البحث (#{round_count})**\n\n"
-                                    f"🔄 الجولات المكتملة: {round_count}\n"
-                                    f"✅ اليوزرات التي تم العثور عليها: {total_found}\n"
-                                    f"🔍 اليوزرات المفحوصة: {self.checked_count}\n"
-                                    f"💾 إجمالي المحفوظات: {len(self.load_saved_usernames())}"
-                                )
+                            asyncio.create_task(
+                                self.send_progress_report(chat_id, bot_instance, round_count, total_found)
                             )
                         except Exception as e:
                             logger.error(f"خطأ في إرسال التقرير الدوري: {e}")
@@ -218,6 +210,39 @@ class AdvancedTikTokChecker:
         self.auto_search_thread.start()
         
         return True
+    
+    async def send_auto_start_message(self, chat_id, bot_instance, search_type, batch_size, delay):
+        """إرسال رسالة بدء البحث التلقائي"""
+        try:
+            await bot_instance.send_message(
+                chat_id=chat_id,
+                text=(
+                    f"🔄 **بدأ البحث التلقائي!**\n\n"
+                    f"📊 الإعدادات:\n"
+                    f"• النوع: {search_type}\n"
+                    f"• اليوزرات لكل جولة: {batch_size}\n"
+                    f"• التأخير بين الجولات: {delay} ثواني\n\n"
+                    f"🎯 سأخبرك فوراً عند العثور على أي يوزر جديد!"
+                )
+            )
+        except Exception as e:
+            logger.error(f"خطأ في إرسال رسالة البدء: {e}")
+    
+    async def send_progress_report(self, chat_id, bot_instance, round_count, total_found):
+        """إرسال تقرير التقدم"""
+        try:
+            await bot_instance.send_message(
+                chat_id=chat_id,
+                text=(
+                    f"📊 **تقرير تقدم البحث (#{round_count})**\n\n"
+                    f"🔄 الجولات المكتملة: {round_count}\n"
+                    f"✅ اليوزرات التي تم العثور عليها: {total_found}\n"
+                    f"🔍 اليوزرات المفحوصة: {self.checked_count}\n"
+                    f"💾 إجمالي المحفوظات: {len(self.load_saved_usernames())}"
+                )
+            )
+        except Exception as e:
+            logger.error(f"خطأ في إرسال التقرير الدوري: {e}")
     
     def stop_auto_search(self):
         """إيقاف البحث التلقائي"""
