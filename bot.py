@@ -81,9 +81,10 @@ class AdvancedTikTokChecker:
                 logger.info(f"💾 تم حفظ اليوزر: @{username}")
                 
                 if chat_id and bot_instance:
-                    # ✅ إصلاح: استخدام asyncio لاستدعاء الدالة غير المتزامنة
-                    asyncio.create_task(
-                        self.send_username_notification(chat_id, username, bot_instance)
+                    # استخدام asyncio لاستدعاء الدالة غير المتزامنة
+                    asyncio.run_coroutine_threadsafe(
+                        self.send_username_notification(chat_id, username, bot_instance),
+                        asyncio.get_event_loop()
                     )
                 return True
             return False
@@ -92,13 +93,12 @@ class AdvancedTikTokChecker:
             return False
     
     async def send_username_notification(self, chat_id, username, bot_instance):
-        """إرسال إشعار باليوزر الجديد - يجب أن تكون async"""
+        """إرسال إشعار باليوزر الجديد"""
         try:
             current_time = time.time()
             if current_time - self.last_notification_time >= self.notification_cooldown:
                 message = f"🎉 **تم العثور على يوزر جديد!**\n\n✅ `@{username}`\n💾 تم الحفظ تلقائياً"
                 
-                # ✅ ✅ ✅ التصحيح الأساسي: إضافة await هنا
                 await bot_instance.send_message(chat_id=chat_id, text=message)
                 
                 self.last_notification_time = current_time
@@ -138,7 +138,7 @@ class AdvancedTikTokChecker:
                     if self.save_username(username, chat_id, bot_instance):
                         newly_saved.append(username)
                 
-                time.sleep(2)
+                time.sleep(1)  # تقليل التأخير لتجنب الحظر
                 
             except Exception as e:
                 logger.error(f"خطأ في {username}: {e}")
@@ -146,8 +146,8 @@ class AdvancedTikTokChecker:
         
         return available, newly_saved
     
-    def start_auto_search(self, chat_id, bot_instance, search_type="mixed", batch_size=10, delay=3):
-        """بدء البحث التلقائي المستمر مع إشعارات محسنة"""
+    def start_auto_search(self, chat_id, bot_instance, search_type="mixed", batch_size=10, delay=5):
+        """بدء البحث التلقائي المستمر"""
         if self.auto_search_running:
             return False
         
@@ -157,10 +157,11 @@ class AdvancedTikTokChecker:
             round_count = 0
             total_found = 0
             
+            # إرسال رسالة البدء
             try:
-                # ✅ إصلاح: استخدام asyncio لاستدعاء الدالة غير المتزامنة
-                asyncio.create_task(
-                    self.send_auto_start_message(chat_id, bot_instance, search_type, batch_size, delay)
+                asyncio.run_coroutine_threadsafe(
+                    self.send_auto_start_message(chat_id, bot_instance, search_type, batch_size, delay),
+                    asyncio.get_event_loop()
                 )
             except Exception as e:
                 logger.error(f"خطأ في إرسال رسالة البدء: {e}")
@@ -175,35 +176,31 @@ class AdvancedTikTokChecker:
                     
                     total_found += len(available)
                     
+                    # إرسال نتائج الجولة إذا وجد يوزرات
                     if available:
-                        message = (
-                            f"✅ **تم العثور على {len(available)} يوزر في الجولة #{round_count}:**\n\n"
-                        )
+                        message = f"✅ **تم العثور على {len(available)} يوزر في الجولة #{round_count}:**\n\n"
                         for username in available:
                             message += f"• `@{username}`\n"
                         message += f"\n💾 تم حفظ {len(saved)} يوزر جديد"
-                        try:
-                            asyncio.create_task(
-                                bot_instance.send_message(chat_id=chat_id, text=message)
-                            )
-                        except Exception as e:
-                            logger.error(f"خطأ في إرسال نتائج الجولة: {e}")
+                        
+                        asyncio.run_coroutine_threadsafe(
+                            bot_instance.send_message(chat_id=chat_id, text=message),
+                            asyncio.get_event_loop()
+                        )
                     
-                    if round_count % 10 == 0:
-                        try:
-                            asyncio.create_task(
-                                self.send_progress_report(chat_id, bot_instance, round_count, total_found)
-                            )
-                        except Exception as e:
-                            logger.error(f"خطأ في إرسال التقرير الدوري: {e}")
+                    # إرسال تقرير كل 5 جولات
+                    if round_count % 5 == 0:
+                        asyncio.run_coroutine_threadsafe(
+                            self.send_progress_report(chat_id, bot_instance, round_count, total_found),
+                            asyncio.get_event_loop()
+                        )
                     
-                    if self.auto_search_running:
-                        time.sleep(delay)
+                    # انتظار قبل الجولة التالية
+                    time.sleep(delay)
                         
                 except Exception as e:
                     logger.error(f"خطأ في البحث التلقائي: {e}")
-                    if self.auto_search_running:
-                        time.sleep(delay)
+                    time.sleep(delay)
         
         self.auto_search_thread = threading.Thread(target=auto_search_loop)
         self.auto_search_thread.daemon = True
@@ -253,26 +250,9 @@ class AdvancedTikTokChecker:
 
 # إنشاء كائن الفاحص
 checker = AdvancedTikTokChecker()
-user_stats = {}
-
-def update_user_stats(user_id, found_count=0):
-    """تحديث إحصائيات المستخدم"""
-    if user_id not in user_stats:
-        user_stats[user_id] = {
-            'requests': 0,
-            'found_usernames': 0,
-            'last_active': datetime.now()
-        }
-    
-    user_stats[user_id]['requests'] += 1
-    user_stats[user_id]['found_usernames'] += found_count
-    user_stats[user_id]['last_active'] = datetime.now()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بدء البوت"""
-    user_id = update.effective_user.id
-    update_user_stats(user_id)
-    
     welcome_text = """🎯 بوت الذكاء لليوزرات النادرة - التشغيل الدائم
 
 🔄 **البوت الآن يعمل 24/7 على السيرفر**
@@ -287,19 +267,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /saved - اليوزرات المحفوظة
 /stats - الإحصائيات
 
-⚡ **جرب الآن:** /auto_start"""
+⚡ **جرب الآن:** /quick"""
     
     await update.message.reply_text(welcome_text)
 
 async def quick_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بحث سريع"""
-    user_id = update.effective_user.id
-    update_user_stats(user_id)
-    
     await update.message.reply_text("🔍 جاري البحث السريع...")
     
     try:
-        usernames = checker.generate_usernames("mixed", 8)
+        usernames = checker.generate_usernames("mixed", 5)
         available, saved = checker.bulk_check(usernames, update.effective_chat.id, context.bot)
         
         if available:
@@ -308,7 +285,7 @@ async def quick_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 response_message += f"• `@{username}`\n"
             response_message += f"\n💾 تم حفظ {len(saved)} يوزر"
         else:
-            response_message = "❌ لم أعثر على يوزرات متاحة"
+            response_message = "❌ لم أعثر على يوزرات متاحة في هذه الجولة"
             
         await update.message.reply_text(response_message)
         
@@ -318,9 +295,6 @@ async def quick_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def auto_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بدء البحث التلقائي"""
-    user_id = update.effective_user.id
-    update_user_stats(user_id)
-    
     if checker.auto_search_running:
         await update.message.reply_text("🔄 البحث التلقائي يعمل بالفعل!")
         return
@@ -329,8 +303,8 @@ async def auto_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=update.effective_chat.id,
         bot_instance=context.bot,
         search_type="mixed",
-        batch_size=10,
-        delay=3
+        batch_size=8,
+        delay=5
     )
     
     if success:
@@ -340,9 +314,6 @@ async def auto_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def auto_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """إيقاف البحث التلقائي"""
-    user_id = update.effective_user.id
-    update_user_stats(user_id)
-    
     if not checker.auto_search_running:
         await update.message.reply_text("⏹️ البحث التلقائي غير مفعل!")
         return
@@ -352,14 +323,11 @@ async def auto_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def show_saved(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """عرض المحفوظات"""
-    user_id = update.effective_user.id
-    update_user_stats(user_id)
-    
     saved = checker.load_saved_usernames()
     
     if saved:
         response_message = "💾 **اليوزرات المحفوظة:**\n\n"
-        for i, username in enumerate(saved[:10], 1):
+        for i, username in enumerate(saved[:15], 1):
             response_message += f"{i}. `@{username}`\n"
         response_message += f"\n📊 المجموع: {len(saved)} يوزر"
     else:
@@ -369,9 +337,6 @@ async def show_saved(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """عرض الإحصائيات"""
-    user_id = update.effective_user.id
-    update_user_stats(user_id)
-    
     saved_count = len(checker.load_saved_usernames())
     auto_status = "🟢 نشط" if checker.auto_search_running else "🔴 متوقف"
     
@@ -387,21 +352,24 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     """الدالة الرئيسية"""
-    application = Application.builder().token(BOT_TOKEN).build()
-    
-    # إضافة handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("quick", quick_search))
-    application.add_handler(CommandHandler("auto_start", auto_start))
-    application.add_handler(CommandHandler("auto_stop", auto_stop))
-    application.add_handler(CommandHandler("saved", show_saved))
-    application.add_handler(CommandHandler("stats", show_stats))
-    
-    print("🚀 بوت يوزرات تيك توك يعمل على السيرفر!")
-    print("⏰ التشغيل الدائم 24/7")
-    
-    # بدء البوت
-    application.run_polling()
+    try:
+        application = Application.builder().token(BOT_TOKEN).build()
+        
+        # إضافة handlers
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CommandHandler("quick", quick_search))
+        application.add_handler(CommandHandler("auto_start", auto_start))
+        application.add_handler(CommandHandler("auto_stop", auto_stop))
+        application.add_handler(CommandHandler("saved", show_saved))
+        application.add_handler(CommandHandler("stats", show_stats))
+        
+        print("🚀 بوت يوزرات تيك توك يعمل على السيرفر!")
+        print("⏰ التشغيل الدائم 24/7")
+        
+        # بدء البوت
+        application.run_polling()
+    except Exception as e:
+        logger.error(f"❌ فشل في تشغيل البوت: {e}")
 
 if __name__ == '__main__':
     main()
